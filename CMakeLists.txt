@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(toxvpn)
 
-set(BOOTSTRAP_PATH "${CMAKE_INSTALL_PREFIX}/share/toxvpn/bootstrap.json")
+set(BOOTSTRAP_PATH "bootstrap.json")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOTSTRAP_FILE=\\\"${BOOTSTRAP_PATH}\\\"")
 
