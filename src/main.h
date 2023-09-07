@@ -28,9 +28,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <tox/tox.h>
-
-#include <nlohmann/json.hpp>
+#include "json.hpp"
 
 #if defined(__CYGWIN__)
 #include <arpa/inet.h>
@@ -75,6 +73,12 @@
 #ifdef USE_EPOLL
 #include <sys/epoll.h>
 #endif
+
+// define this before including toxcore amalgamation -------
+#define MIN_LOGGER_LEVEL LOGGER_LEVEL_WARNING // LOGGER_LEVEL_WARNING // LOGGER_LEVEL_DEBUG
+// define this before including toxcore amalgamation -------
+
+#include "tox/tox.h"
 
 #include "epoll_target.h"
 

@@ -12,8 +12,8 @@
 #pragma once
 
 #include <list>
-#include <tox/tox.h>
 #include <arpa/inet.h>
+#include "tox/tox.h"
 
 namespace ToxVPN {
 
