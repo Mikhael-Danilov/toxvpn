@@ -14,6 +14,13 @@ using namespace std::chrono;
 
 using json = nlohmann::json;
 
+extern "C" {
+typedef void tox_dht_get_nodes_response_cb(Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
+                                           void *user_data);
+    void tox_callback_dht_get_nodes_response(Tox *tox, tox_dht_get_nodes_response_cb *callback);
+
+}
+
 NetworkInterface* mynic;
 volatile bool keep_running = true;
 std::string myip;
@@ -66,6 +73,7 @@ void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
     hex_string_to_bin(toxvpn->nodes[i].pubkey.c_str(), bootstrap_pub_key);
     tox_bootstrap(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port,
                   bootstrap_pub_key, nullptr);
+    tox_add_tcp_relay(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port, bootstrap_pub_key, NULL);
     delete[] bootstrap_pub_key;
     toxvpn->last_boostrap = steady_clock::now();
     fflush(stdout);
@@ -273,6 +281,15 @@ void connection_status(Tox* tox,
     fflush(stdout);
 }
 
+void dht_get_node(Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port, void *user_data) {
+    #define CRYPTO_PUBLIC_KEY_SIZE         32
+
+    char keybuf[CRYPTO_PUBLIC_KEY_SIZE*2 + 1];
+    to_hex(keybuf,public_key,CRYPTO_PUBLIC_KEY_SIZE);
+    keybuf[CRYPTO_PUBLIC_KEY_SIZE*2] = 0;
+    printf("%s %s %d\n", keybuf, ip, port);
+}
+
 std::string readFile(std::string path) {
     std::string output;
     FILE* handle = fopen(path.c_str(), "r");
@@ -291,7 +308,7 @@ void saveConfig(json root) {
     std::string json = root.dump();
     FILE* handle = fopen("config.json", "w");
     if(!handle) {
-        cerr << "unable to open config file for writting" << endl;
+        cerr << "unable to open config file for writing" << endl;
         exit(-1);
     }
     const char* data = json.c_str();
@@ -532,6 +549,8 @@ int main(int argc, char** argv) {
     tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate);
     tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket);
     tox_callback_self_connection_status(my_tox, &connection_status);
+
+    //tox_callback_dht_get_nodes_response(my_tox, &dht_get_node);
 
 /* Define or load some user details for the sake of it */
 #ifndef WIN32
