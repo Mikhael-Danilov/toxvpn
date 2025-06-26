@@ -1,6 +1,11 @@
 #include "main.h"
 #include "control.h"
 
+#include <arpa/inet.h> // Required for inet_ntoa
+#include <string>
+#include <sstream>
+#include <iostream>
+
 using namespace std;
 using namespace ToxVPN;
 
@@ -36,6 +41,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
     if(size == -1)
         return -1;
     std::string cmd(line, size);
+    free(line); // It's good practice to free the buffer allocated by getline
 #endif
     std::string buf;
     std::stringstream ss(cmd);
@@ -126,13 +132,14 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
                 myip.c_str());
     } else if(buf == "help") {
         fputs("list              - lists tox friends\n", output);
-        fputs(
-            "remove <number>   - removes a friend, get the number from list\n",
-            output);
+        fputs("remove <number>   - removes a friend, get the number from list\n", output);
         fputs("add <toxid>       - adds a friend\n", output);
         fputs("whitelist <toxid> - add/accept a friend\n", output);
         fputs("status            - shows your own id&ip\n", output);
         fputs("bootstrap         - attempt to reconnect\n", output);
+        fputs("route show        - show internal VPN routes\n", output);
+        // NEW: Help text for the gateway command
+        fputs("gateway set <num> - route all internet traffic through friend <num>\n", output);
     } else if(buf == "bootstrap") {
         do_bootstrap(tox, toxvpn);
     } else if(buf == "route") {
@@ -145,6 +152,25 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
                 fprintf(output, "%s/%d via friend#%d\n", inet_ntoa(r.network),
                         r.maskbits, r.friend_number);
             }
+        }
+    }
+    // NEW: Handle the 'gateway' command
+    else if (buf == "gateway") {
+        ss >> buf; // Get the subcommand, e.g., "set"
+        if (buf == "set") {
+            int friendid;
+            ss >> friendid;
+            if (ss.fail()) {
+                fprintf(output, "Error: Invalid or missing friend number.\n");
+                fprintf(output, "Usage: gateway set <friend_number>\n");
+            } else {
+                fprintf(output, "Attempting to set friend #%d as the internet gateway...\n", friendid);
+                // Call the function in the NetworkInterface class
+                interfarce->setInternetGateway(friendid);
+            }
+        } else {
+            fprintf(output, "Unknown gateway command: %s\n", buf.c_str());
+            fprintf(output, "Usage: gateway set <friend_number>\n");
         }
     }
     fflush(output);
