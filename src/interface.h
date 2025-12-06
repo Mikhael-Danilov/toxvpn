@@ -13,7 +13,7 @@
 
 #include <list>
 #include <arpa/inet.h>
-#include "tox/tox.h"
+#include "tox.h"
 
 namespace ToxVPN {
 

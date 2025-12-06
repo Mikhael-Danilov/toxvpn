@@ -78,7 +78,7 @@
 #define MIN_LOGGER_LEVEL LOGGER_LEVEL_WARNING // LOGGER_LEVEL_WARNING // LOGGER_LEVEL_DEBUG
 // define this before including toxcore amalgamation -------
 
-#include "tox/tox.h"
+#include "tox.h"
 
 #include "epoll_target.h"
 

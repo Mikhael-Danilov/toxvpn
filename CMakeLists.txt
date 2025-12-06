@@ -30,6 +30,12 @@ endif(ZMQ)
 find_library(SODIUM_LIBRARIES sodium REQUIRED "${SODIUM_PREFIX}/lib")
 find_path(SODIUM_INCLUDE_DIRS sodium.h REQUIRED "${SODIUM_PREFIX}/include")
 
+# Find Tox library using pkg-config
+find_package(PkgConfig REQUIRED)
+if (PKG_CONFIG_FOUND)
+    pkg_check_modules(TOX REQUIRED IMPORTED_TARGET libtoxcore)
+endif()
+
 if(WIN32)
   set(extra_files src/interface_windows.cpp src/route_windows.cpp)
 elseif(CYGWIN)
@@ -40,12 +46,19 @@ else()
   set(extra_files src/interface_linux.cpp src/route_linux.cpp)
 endif()
 
-add_executable(toxvpn src/toxcore_amalgamation_no_toxav.c src/main.cpp src/control.cpp src/interface.cpp src/listener.cpp ${extra_files})
-target_link_libraries(toxvpn pthread ${JSONCPP_LIBRARIES} ${SODIUM_LIBRARIES})
-include_directories(${JSONCPP_INCLUDE_DIRS})
+# Use the submodule libraries directly with relative paths
+# First, we need to build the submodule
+add_subdirectory(c-toxcore)
 
-add_executable(toxvpn-remote src/toxcore_amalgamation_no_toxav.c src/toxvpn-remote.cpp)
-target_link_libraries(toxvpn-remote ${ZMQ_LIBS} ${SODIUM_LIBRARIES})
+# Link against the toxcore library built from submodule (includes toxencryptsave)
+set(TOXCORE_LIBRARIES toxcore_shared)
+
+add_executable(toxvpn src/main.cpp src/control.cpp src/interface.cpp src/listener.cpp ${extra_files})
+target_link_libraries(toxvpn pthread ${JSONCPP_LIBRARIES} ${SODIUM_LIBRARIES} ${TOXCORE_LIBRARIES})
+include_directories(${JSONCPP_INCLUDE_DIRS} ${SODIUM_INCLUDE_DIRS} c-toxcore/toxcore)
+
+add_executable(toxvpn-remote src/toxvpn-remote.cpp)
+target_link_libraries(toxvpn-remote ${ZMQ_LIBS} ${SODIUM_LIBRARIES} ${TOXCORE_LIBRARIES})
 
 if(WIN32)
   target_link_libraries(toxvpn ws2_32 ${SODIUM_LIBRARIES} pthread iphlpapi ${JSONCPP_LIBRARIES})
