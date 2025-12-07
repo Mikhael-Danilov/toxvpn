@@ -50,11 +50,20 @@ void to_hex(char* a, const uint8_t* p, int size) {
     }
 }
 namespace ToxVPN {
+// Global variable to store the config directory path
+std::string configDirPath = "";
+
 void saveState(Tox* tox) {
     size_t size = tox_get_savedata_size(tox);
     uint8_t* savedata = new uint8_t[size];
     tox_get_savedata(tox, savedata);
-    int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
+
+    std::string savedataPath = "savedata";
+    if (!configDirPath.empty()) {
+        savedataPath = configDirPath + "/savedata";
+    }
+
+    int fd = open(savedataPath.c_str(), O_TRUNC | O_WRONLY | O_CREAT, 0644);
     assert(fd);
 #ifndef NDEBUG
     ssize_t written =
@@ -404,7 +413,7 @@ int main(int argc, char** argv) {
                  << endl;
             cout << "-p <port>\tbind on a given port" << endl;
             cout << "-t <dev>\tuse existing TUN device (e.g., tun0)" << endl;
-            cout << "-c <path>\tspecify config file location (default: config.json)" << endl;
+            cout << "-c <path>\tspecify directory for all state files (config and savedata, default: config.json)" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
@@ -503,11 +512,23 @@ int main(int argc, char** argv) {
         saveConfig(configFile, configRoot);
     }
 
+    // Extract directory from configPath for savedata
+    std::string savedataPath = "savedata";
+    size_t lastSlash = configFile.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        savedataPath = configFile.substr(0, lastSlash + 1) + "savedata";
+        // Set the global config directory path for saveState() function
+        configDirPath = configFile.substr(0, lastSlash);
+    } else {
+        // If no directory separator found, use current directory
+        configDirPath = ".";
+    }
+
     json root{{"ownip", configRoot["myip"]}};
 
     Tox* my_tox;
     bool want_bootstrap = false;
-    int oldstate = open("savedata", O_RDONLY);
+    int oldstate = open(savedataPath.c_str(), O_RDONLY);
     if(oldstate >= 0) {
         struct stat info;
         fstat(oldstate, &info);
