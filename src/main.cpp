@@ -304,11 +304,11 @@ std::string readFile(std::string path) {
     return output;
 }
 
-void saveConfig(json root) {
+void saveConfig(const std::string& configFile, json root) {
     std::string json = root.dump();
-    FILE* handle = fopen("config.json", "w");
+    FILE* handle = fopen(configFile.c_str(), "w");
     if(!handle) {
-        cerr << "unable to open config file for writing" << endl;
+        cerr << "unable to open config file for writing: " << configFile << endl;
         exit(-1);
     }
     const char* data = json.c_str();
@@ -385,12 +385,13 @@ int main(int argc, char** argv) {
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
+    string configFile = "config.json";  // Default config file
     tox_options_ptr opts(tox_options_new(nullptr));
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
     string tunDevice;
-    while((opt = getopt(argc, argv, "shi:l:u:p:a:t:")) != -1) {
+    while((opt = getopt(argc, argv, "shi:l:u:p:a:t:c:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'h':
@@ -403,6 +404,7 @@ int main(int argc, char** argv) {
                  << endl;
             cout << "-p <port>\tbind on a given port" << endl;
             cout << "-t <dev>\tuse existing TUN device (e.g., tun0)" << endl;
+            cout << "-c <path>\tspecify config file location (default: config.json)" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
@@ -421,6 +423,7 @@ int main(int argc, char** argv) {
                 (uint16_t) strtol(optarg, nullptr, 10);
             break;
         case 'a': toxvpn.auto_friends.push_back(string(optarg)); break;
+        case 'c': configFile = string(optarg); break;
         }
     }
     toxvpn.auto_friends.shrink_to_fit();
@@ -479,11 +482,11 @@ int main(int argc, char** argv) {
     }
 
     try {
-        std::string config = readFile("config.json");
+        std::string config = readFile(configFile);
         configRoot = json::parse(config);
         if(changeIp.length() > 0) {
             configRoot["myip"] = changeIp;
-            saveConfig(configRoot);
+            saveConfig(configFile, configRoot);
         }
         json ip = configRoot["myip"];
         if(ip.is_string()) {
@@ -497,7 +500,7 @@ int main(int argc, char** argv) {
             cin >> myip;
             configRoot["myip"] = myip;
         }
-        saveConfig(configRoot);
+        saveConfig(configFile, configRoot);
     }
 
     json root{{"ownip", configRoot["myip"]}};
