@@ -14,6 +14,10 @@
 - `src/interface_mac.cpp` - macOS TUN interface support
 - `src/interface.cpp` - Added verbose mode support for suppressing unsupported packet messages
 - `src/interface_windows.cpp` - Windows TUN interface support (updated for verbose mode)
+- `src/main.cpp` - TCP ACL enabled by default, added tcp_acl_enabled tracking variable
+- `src/main.h` - Changed MIN_LOGGER_LEVEL to INFO to show ACL events by default
+- `src/control.cpp` - Fixed tcp_acl_status command to show current status, updated handlers to track state
+- `c-toxcore/toxcore/TCP_server.c` - Added logging for both allow and deny events in TCP ACL
 
 ## Build System:
 - `CMakeLists.txt` - Renamed binary from toxvpn to toxvpn2
