@@ -20,6 +20,7 @@
 - `c-toxcore/toxcore/TCP_server.c` - Added logging for both allow and deny events in TCP ACL
 - `src/main.cpp` - Added -n option to disable UDP connections
 - `src/main.cpp` - Added logging to show TCP relay listening IP:port
+- `src/main.cpp` & `src/main.h` - Enhanced to show real accessible IPs for TCP relay
 
 ## Build System:
 - `CMakeLists.txt` - Renamed binary from toxvpn to toxvpn2
