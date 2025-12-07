@@ -7,12 +7,13 @@
 - `c-toxcore/toxcore/tox.h` - Public API declarations
 
 ## ToxVPN Enhancement:
-- `src/main.cpp` - Added -t command line option and changed directory behavior to support multi-instance operation
+- `src/main.cpp` - Added -t command line option, changed directory behavior to support multi-instance operation, and added -v verbose option
 - `src/control.cpp` - Added ACL commands to control interface
 - `src/interface.h` - Updated function signatures
 - `src/interface_linux.cpp` - Linux TUN interface support
-- `src/interface_mac.cpp` - macOS TUN interface support  
-- `src/interface_windows.cpp` - Windows TUN interface support
+- `src/interface_mac.cpp` - macOS TUN interface support
+- `src/interface.cpp` - Added verbose mode support for suppressing unsupported packet messages
+- `src/interface_windows.cpp` - Windows TUN interface support (updated for verbose mode)
 
 ## Build System:
 - `CMakeLists.txt` - Renamed binary from toxvpn to toxvpn2
