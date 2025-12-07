@@ -7,6 +7,8 @@
 #include <zmq.h>
 #endif
 #include <chrono>
+#include <ifaddrs.h>
+#include <net/if.h>
 
 using namespace std;
 using namespace ToxVPN;
@@ -19,6 +21,49 @@ typedef void tox_dht_get_nodes_response_cb(Tox *tox, const uint8_t *public_key, 
                                            void *user_data);
     void tox_callback_dht_get_nodes_response(Tox *tox, tox_dht_get_nodes_response_cb *callback);
 
+}
+
+// Function to get local interface IPs
+std::string getLocalIPs() {
+    struct ifaddrs *ifaddrs_ptr, *ifa;
+    std::string result = "";
+    int family;
+
+    if (getifaddrs(&ifaddrs_ptr) == -1) {
+        return std::string("127.0.0.1"); // fallback
+    }
+
+    for (ifa = ifaddrs_ptr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == nullptr) {
+            continue;
+        }
+
+        family = ifa->ifa_addr->sa_family;
+
+        if (family == AF_INET) { // IPv4
+            char host[NI_MAXHOST];
+            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
+                           host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST) == 0) {
+                // Skip loopback and local-only interfaces
+                if (strncmp(host, "127.", 4) != 0 &&
+                    strcmp(host, "0.0.0.0") != 0 &&
+                    strncmp(host, "169.254.", 8) != 0) { // Skip link-local
+                    if (!result.empty()) {
+                        result += ", ";
+                    }
+                    result += std::string(host);
+                }
+            }
+        }
+    }
+
+    freeifaddrs(ifaddrs_ptr);
+
+    if (result.empty()) {
+        return std::string("127.0.0.1"); // fallback
+    }
+
+    return result;
 }
 
 NetworkInterface* mynic;
@@ -588,11 +633,13 @@ int main(int argc, char** argv) {
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
     printf("my id is %s and IP is %s\n", tox_printable_id, myip.c_str());
 
-    // Log TCP relay listening information - use more appropriate IP representation
+    // Log TCP relay listening information
     Tox_Err_Get_Port tcp_error;
     uint16_t tcp_port = tox_self_get_tcp_port(my_tox, &tcp_error);
     if (tcp_error == TOX_ERR_GET_PORT_OK) {
-        printf("TCP relay listening on 0.0.0.0:%u (external IP will depend on your network configuration)\n", tcp_port);
+        // Get local IPs where the TCP relay might be accessible
+        std::string local_ips = getLocalIPs();
+        printf("TCP relay listening on port %u (local IPs: %s)\n", tcp_port, local_ips.c_str());
     } else {
         printf("TCP relay not running on this instance\n");
     }

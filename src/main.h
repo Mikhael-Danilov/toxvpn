@@ -52,6 +52,7 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
 // linux-only includes
 #ifndef __APPLE__
 #include <linux/if_tun.h>
