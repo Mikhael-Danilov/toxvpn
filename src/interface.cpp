@@ -12,6 +12,10 @@
 using namespace std;
 using namespace ToxVPN;
 
+void NetworkInterface::setVerbose(bool v) {
+    verbose = v;
+}
+
 void* NetworkInterface::loop() {
     fd_set readset;
     struct timeval timeout;
@@ -54,8 +58,10 @@ void NetworkInterface::handleReadData() {
 #ifndef __APPLE__
     for(unsigned int i = 0; i < sizeof(required); i++) {
         if(readbuffer[i] != required[i]) {
-            puts("unsupported packet, dropping");
-            dump_packet(readbuffer, size);
+            if(verbose) {
+                puts("unsupported packet, dropping");
+                dump_packet(readbuffer, size);
+            }
         }
     }
 #endif

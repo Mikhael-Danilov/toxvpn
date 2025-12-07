@@ -8,7 +8,7 @@ static void* start_routine(void* x) {
     NetworkInterface* nic = (NetworkInterface*) x;
     return nic->loop();
 }
-NetworkInterface::NetworkInterface() : fd(0), my_tox(0) {
+NetworkInterface::NetworkInterface() : fd(0), my_tox(0), verbose(false) {
     if((fd = open("/dev/tun0", O_RDWR)) < 0) {
         cerr << "unable to open /dev/tun0" << endl;
     }

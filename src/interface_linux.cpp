@@ -9,7 +9,7 @@ static void* start_routine(void* x) {
     return nic->loop();
 }
 
-NetworkInterface::NetworkInterface() : my_tox(nullptr) {
+NetworkInterface::NetworkInterface() : my_tox(nullptr), verbose(false) {
     fd = 0;
     // Don't open TUN device here - let configure() method handle it based on tunDevice parameter
 }

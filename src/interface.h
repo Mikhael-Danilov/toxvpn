@@ -34,6 +34,7 @@ public:
     void addPeerRoute(struct in_addr peer, int friend_number);
     void processPacket(const uint8_t* data, size_t bytes, int friend_number);
     void configure(std::string myip, Tox* my_tox, std::string tunDevice = "");
+    void setVerbose(bool verbose);
 
     std::list<Route> routes;
 
@@ -46,5 +47,6 @@ private:
     int fd;
     Tox* my_tox;
     int interfaceIndex;
+    bool verbose;
 };
 }
