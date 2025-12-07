@@ -4,6 +4,8 @@
 using namespace std;
 using namespace ToxVPN;
 
+extern bool tcp_acl_enabled;
+
 Control::Control(NetworkInterface* iface) : interfarce(iface) {
     this->handle = STDIN_FILENO;
     input = stdin;
@@ -118,9 +120,11 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         saveState(tox);
     } else if(buf == "tcp_acl_enable") {
         tox_set_tcp_relay_access_control_enabled(tox, true);
+        tcp_acl_enabled = true;
         fputs("TCP relay access control enabled\n", output);
     } else if(buf == "tcp_acl_disable") {
         tox_set_tcp_relay_access_control_enabled(tox, false);
+        tcp_acl_enabled = false;
         fputs("TCP relay access control disabled\n", output);
     } else if(buf == "tcp_acl_add") {
         ss >> buf;
@@ -143,9 +147,11 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
             fprintf(output, "Failed to remove public key from TCP relay whitelist: %s\n", buf.c_str());
         }
     } else if(buf == "tcp_acl_status") {
-        // We can't directly query the status through public API, but we can indicate current setting
-        // In a real implementation we might need to track this in the config too
-        fputs("TCP relay access control status: Use configuration to track current state\n", output);
+        if (tcp_acl_enabled) {
+            fputs("TCP relay access control: ENABLED\n", output);
+        } else {
+            fputs("TCP relay access control: DISABLED\n", output);
+        }
     } else if(buf == "status") {
         uint8_t toxid[TOX_ADDRESS_SIZE];
         tox_self_get_address(tox, toxid);

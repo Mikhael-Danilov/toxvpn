@@ -25,6 +25,7 @@ NetworkInterface* mynic;
 volatile bool keep_running = true;
 std::string myip;
 int epoll_handle;
+bool tcp_acl_enabled = true;  // Track ACL status, default to true
 
 void hex_string_to_bin(const char* hex_string, uint8_t* ret) {
     // byte is represented by exactly 2 hex digits, so lenth of binary string
@@ -565,6 +566,9 @@ int main(int argc, char** argv) {
     if(opts->savedata_data)
         delete[] opts->savedata_data;
     opts = nullptr;
+
+    // Enable TCP relay access control by default
+    tox_set_tcp_relay_access_control_enabled(my_tox, true);
 
     uint8_t toxid[TOX_ADDRESS_SIZE];
     tox_self_get_address(my_tox, toxid);

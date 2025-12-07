@@ -75,7 +75,7 @@
 #endif
 
 // define this before including toxcore amalgamation -------
-#define MIN_LOGGER_LEVEL LOGGER_LEVEL_WARNING // LOGGER_LEVEL_WARNING // LOGGER_LEVEL_DEBUG
+#define MIN_LOGGER_LEVEL LOGGER_LEVEL_INFO // LOGGER_LEVEL_WARNING // LOGGER_LEVEL_DEBUG
 // define this before including toxcore amalgamation -------
 
 #include "tox.h"
