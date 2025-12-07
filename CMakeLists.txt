@@ -32,9 +32,10 @@ find_path(SODIUM_INCLUDE_DIRS sodium.h REQUIRED "${SODIUM_PREFIX}/include")
 
 # Find Tox library using pkg-config
 find_package(PkgConfig REQUIRED)
-if (PKG_CONFIG_FOUND)
-    pkg_check_modules(TOX REQUIRED IMPORTED_TARGET libtoxcore)
-endif()
+# Skip pkg-config lookup for toxcore since we're using the submodule directly
+# if (PKG_CONFIG_FOUND)
+#     pkg_check_modules(TOX REQUIRED IMPORTED_TARGET libtoxcore)
+# endif()
 
 if(WIN32)
   set(extra_files src/interface_windows.cpp src/route_windows.cpp)
