@@ -1,7 +1,16 @@
 build/
 toxvpn
 toxvpn-remote
+toxvpn2
 CMakeCache.txt
 CMakeFiles/
 Makefile
 cmake_install.cmake
+# Test binaries
+test_*
+# Generated files
+*.o
+*.a
+*.so
+PUBLIC_ID.txt
+key
