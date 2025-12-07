@@ -552,11 +552,15 @@ int main(int argc, char** argv) {
     // Set UDP option based on command line flag
     tox_options_set_udp_enabled(opts.get(), !no_udp);
 
+    // Set TCP port to enable TCP relay functionality (use the first available port in range)
+    tox_options_set_tcp_port(opts.get(), opts->start_port);
+
     want_bootstrap = true;
     my_tox = tox_new(opts.get(), &new_error);
     if(!my_tox) {
         opts->ipv6_enabled = false;
         tox_options_set_udp_enabled(opts.get(), !no_udp);  // Ensure UDP setting is preserved in fallback
+        tox_options_set_tcp_port(opts.get(), opts->start_port); // Ensure TCP setting is preserved in fallback
         my_tox = tox_new(opts.get(), &new_error);
     }
     switch(new_error) {
@@ -583,6 +587,15 @@ int main(int argc, char** argv) {
     memset(tox_printable_id, 0, sizeof(tox_printable_id));
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
     printf("my id is %s and IP is %s\n", tox_printable_id, myip.c_str());
+
+    // Log TCP relay listening information
+    Tox_Err_Get_Port tcp_error;
+    uint16_t tcp_port = tox_self_get_tcp_port(my_tox, &tcp_error);
+    if (tcp_error == TOX_ERR_GET_PORT_OK) {
+        printf("TCP relay listening on %s:%u\n", myip.c_str(), tcp_port);
+    } else {
+        printf("TCP relay not running on this instance\n");
+    }
 
     /* Register the callbacks */
     tox_callback_friend_request(my_tox, MyFriendRequestCallback);
