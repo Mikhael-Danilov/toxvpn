@@ -394,6 +394,7 @@ int main(int argc, char** argv) {
     Tox_Err_New new_error;
     bool stdin_is_socket = false;
     bool verbose_mode = false;
+    bool no_udp = false;
     string changeIp;
     string unixSocket;
     string configFile = "config.json";  // Default config file
@@ -402,10 +403,11 @@ int main(int argc, char** argv) {
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
     string tunDevice;
-    while((opt = getopt(argc, argv, "vshi:l:u:p:a:t:c:")) != -1) {
+    while((opt = getopt(argc, argv, "nvshi:l:u:p:a:t:c:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'v': verbose_mode = true; break;
+        case 'n': no_udp = true; break;
         case 'h':
         case '?':
             cout << "-s\t\ttreat stdin as a unix socket server" << endl;
@@ -418,6 +420,7 @@ int main(int argc, char** argv) {
             cout << "-t <dev>\tuse existing TUN device (e.g., tun0)" << endl;
             cout << "-c <path>\tspecify config file path; program changes to directory containing config file (default: config.json in current directory)" << endl;
             cout << "-v\t\tverbose mode (show unsupported packet messages)" << endl;
+            cout << "-n\t\tdisable UDP connections, use TCP only" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
@@ -546,10 +549,14 @@ int main(int argc, char** argv) {
         opts->savedata_length = size;
     }
 
+    // Set UDP option based on command line flag
+    tox_options_set_udp_enabled(opts.get(), !no_udp);
+
     want_bootstrap = true;
     my_tox = tox_new(opts.get(), &new_error);
     if(!my_tox) {
         opts->ipv6_enabled = false;
+        tox_options_set_udp_enabled(opts.get(), !no_udp);  // Ensure UDP setting is preserved in fallback
         my_tox = tox_new(opts.get(), &new_error);
     }
     switch(new_error) {
