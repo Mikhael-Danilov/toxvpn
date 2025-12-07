@@ -7,7 +7,7 @@
 - `c-toxcore/toxcore/tox.h` - Public API declarations
 
 ## ToxVPN Enhancement:
-- `src/main.cpp` - Added -t command line option
+- `src/main.cpp` - Added -t command line option and changed directory behavior to support multi-instance operation
 - `src/control.cpp` - Added ACL commands to control interface
 - `src/interface.h` - Updated function signatures
 - `src/interface_linux.cpp` - Linux TUN interface support
