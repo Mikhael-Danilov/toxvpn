@@ -21,6 +21,7 @@
 - `src/main.cpp` - Added -n option to disable UDP connections
 - `src/main.cpp` - Added logging to show TCP relay listening IP:port
 - `src/main.cpp` & `src/main.h` - Enhanced to show real accessible IPs for TCP relay
+- `c-toxcore/toxcore/TCP_server.c` - Added logging for TCP relay connection attempts with IP:port
 
 ## Build System:
 - `CMakeLists.txt` - Renamed binary from toxvpn to toxvpn2
