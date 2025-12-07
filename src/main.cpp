@@ -588,11 +588,11 @@ int main(int argc, char** argv) {
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
     printf("my id is %s and IP is %s\n", tox_printable_id, myip.c_str());
 
-    // Log TCP relay listening information
+    // Log TCP relay listening information - use more appropriate IP representation
     Tox_Err_Get_Port tcp_error;
     uint16_t tcp_port = tox_self_get_tcp_port(my_tox, &tcp_error);
     if (tcp_error == TOX_ERR_GET_PORT_OK) {
-        printf("TCP relay listening on %s:%u\n", myip.c_str(), tcp_port);
+        printf("TCP relay listening on 0.0.0.0:%u (external IP will depend on your network configuration)\n", tcp_port);
     } else {
         printf("TCP relay not running on this instance\n");
     }
