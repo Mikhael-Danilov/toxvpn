@@ -437,6 +437,20 @@ int main(int argc, char** argv) {
     }
     toxvpn.auto_friends.shrink_to_fit();
 
+    // Change to directory containing config file if a path is specified
+    size_t configPathLastSlash = configFile.find_last_of("/\\");
+    if (configPathLastSlash != std::string::npos) {
+        // Extract directory part of the config file path
+        std::string configDir = configFile.substr(0, configPathLastSlash);
+        if (chdir(configDir.c_str())) {
+            cerr << "unable to cd into config directory(" << configDir << "): " << strerror(errno) << endl;
+            return -1;
+        }
+        // Update configFile to be just the filename relative to the new directory
+        configFile = configFile.substr(configPathLastSlash + 1);
+    }
+    // If no directory was specified in configFile, we stay in current directory
+
     puts("creating interface");
     mynic = new NetworkInterface();
 #if defined(WIN32) || defined(__CYGWIN__)
@@ -475,20 +489,7 @@ int main(int argc, char** argv) {
 #endif
     } else
         target_user = getpwnam("root");
-    if(chdir(target_user->pw_dir)) {
 #endif
-        printf("unable to cd into $HOME(%s): %s\n", target_user->pw_dir, strerror(errno));
-        return -1;
-    }
-    if(chdir(".toxvpn")) {
-        mkdir(".toxvpn"
-#ifndef WIN32
-              ,
-              0755
-#endif
-              );
-        chdir(".toxvpn");
-    }
 
     try {
         std::string config = readFile(configFile);
