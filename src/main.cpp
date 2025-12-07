@@ -413,7 +413,7 @@ int main(int argc, char** argv) {
                  << endl;
             cout << "-p <port>\tbind on a given port" << endl;
             cout << "-t <dev>\tuse existing TUN device (e.g., tun0)" << endl;
-            cout << "-c <path>\tspecify directory for all state files (config and savedata, default: config.json)" << endl;
+            cout << "-c <path>\tspecify config file path; program changes to directory containing config file (default: config.json in current directory)" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
