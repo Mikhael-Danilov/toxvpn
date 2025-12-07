@@ -16,36 +16,81 @@ NetworkInterface::NetworkInterface() : my_tox(nullptr) {
     }
 }
 
-void NetworkInterface::configure(string ip_in, Tox* tox_in) {
+void NetworkInterface::configure(string ip_in, Tox* tox_in, string tunDevice) {
     int err;
-    struct ifreq ifr;
-    memset(&ifr, 0, sizeof(ifr));
-    ifr.ifr_flags = IFF_TUN;
-    strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ);
 
-    if((err = ioctl(fd, TUNSETIFF, (void*) &ifr)) < 0) {
-        if(errno == EPERM) {
-            cerr << "no permission to create tun device" << endl;
+    if (!tunDevice.empty()) {
+        // Use pre-created TUN device
+        string devicePath = "/dev/" + tunDevice;
+        fd = open(devicePath.c_str(), O_RDWR);
+        if (fd < 0) {
+            cerr << "unable to open pre-created TUN device: " << devicePath << endl;
+            cerr << "error: " << strerror(errno) << endl;
             exit(-1);
         }
-        cerr << strerror(errno) << err << endl;
-        close(fd);
+        cout << "Using pre-created TUN device: " << tunDevice << endl;
+
+        // Just open the existing interface, no need to create it
+        // Get interface index by name
+        interfaceIndex = if_nametoindex(tunDevice.c_str());
+        if (interfaceIndex == 0) {
+            cerr << "unable to get interface index for: " << tunDevice << endl;
+            exit(-1);
+        }
+    } else {
+        // Create new TUN device (original behavior)
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_flags = IFF_TUN;
+        strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ);
+
+        if((err = ioctl(fd, TUNSETIFF, (void*) &ifr)) < 0) {
+            if(errno == EPERM) {
+                cerr << "no permission to create tun device" << endl;
+                exit(-1);
+            }
+            cerr << strerror(errno) << err << endl;
+            close(fd);
+        }
+        interfaceIndex = if_nametoindex(ifr.ifr_name);
     }
-    // and set MTU params
+
+    // Configure the interface (same for both cases)
+    // Set MTU params
     int tun_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(tun_sock < 0) {
         printf("error while setting MTU: %s", strerror(errno));
         return;
     }
-    ifr.ifr_mtu = 1200;
-    err = ioctl(tun_sock, SIOCSIFMTU, &ifr);
-    if(err)
-        printf("error %d setting mtu\n", err);
+
+    // Set MTU if not using pre-created device (user should set MTU when creating)
+    if (tunDevice.empty()) {
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(ifr));
+        if (!tunDevice.empty()) {
+            strncpy(ifr.ifr_name, tunDevice.c_str(), IFNAMSIZ - 1);
+        } else {
+            strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ - 1);
+        }
+
+        ifr.ifr_mtu = 1200;
+        err = ioctl(tun_sock, SIOCSIFMTU, &ifr);
+        if(err)
+            printf("error %d setting mtu\n", err);
+    }
 
     printf("setting ip to %s\n", ip_in.c_str());
     struct sockaddr_in address;
     address.sin_family = AF_INET;
     inet_aton(ip_in.c_str(), &address.sin_addr);
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    if (!tunDevice.empty()) {
+        strncpy(ifr.ifr_name, tunDevice.c_str(), IFNAMSIZ - 1);
+    } else {
+        strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ - 1);
+    }
+
     memcpy(&ifr.ifr_addr, &address, sizeof(address));
     err = ioctl(tun_sock, SIOCSIFADDR, &ifr);
     if(err)
@@ -62,7 +107,6 @@ void NetworkInterface::configure(string ip_in, Tox* tox_in) {
 
     close(tun_sock);
 
-    interfaceIndex = if_nametoindex(ifr.ifr_name);
     my_tox = tox_in;
     pthread_attr_t attr;
     pthread_attr_init(&attr);

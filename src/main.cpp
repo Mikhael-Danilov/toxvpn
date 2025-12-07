@@ -389,7 +389,8 @@ int main(int argc, char** argv) {
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
-    while((opt = getopt(argc, argv, "shi:l:u:p:a:")) != -1) {
+    string tunDevice;
+    while((opt = getopt(argc, argv, "shi:l:u:p:a:t:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'h':
@@ -401,10 +402,12 @@ int main(int argc, char** argv) {
                     "required"
                  << endl;
             cout << "-p <port>\tbind on a given port" << endl;
+            cout << "-t <dev>\tuse existing TUN device (e.g., tun0)" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
         case 'l': unixSocket = optarg; break;
+        case 't': tunDevice = optarg; break;
         case 'u':
 #if defined(WIN32) || defined(__CYGWIN__)
             puts("-u not currently supported on windows");
@@ -582,7 +585,7 @@ int main(int argc, char** argv) {
 #ifdef USE_SELECT
     fd_set readset;
 #endif
-    mynic->configure(myip, my_tox);
+    mynic->configure(myip, my_tox, tunDevice);
     Control* control = nullptr;
 
     if(unixSocket.length()) {

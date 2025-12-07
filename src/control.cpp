@@ -116,6 +116,36 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         default: fprintf(output, "err code %d\n", error);
         }
         saveState(tox);
+    } else if(buf == "tcp_acl_enable") {
+        tox_set_tcp_relay_access_control_enabled(tox, true);
+        fputs("TCP relay access control enabled\n", output);
+    } else if(buf == "tcp_acl_disable") {
+        tox_set_tcp_relay_access_control_enabled(tox, false);
+        fputs("TCP relay access control disabled\n", output);
+    } else if(buf == "tcp_acl_add") {
+        ss >> buf;
+        uint8_t peerbinary[TOX_PUBLIC_KEY_SIZE];
+        hex_string_to_bin(buf.c_str(), peerbinary);
+        bool result = tox_add_tcp_relay_to_whitelist(tox, peerbinary);
+        if(result) {
+            fprintf(output, "Added public key to TCP relay whitelist: %s\n", buf.c_str());
+        } else {
+            fprintf(output, "Failed to add public key to TCP relay whitelist: %s\n", buf.c_str());
+        }
+    } else if(buf == "tcp_acl_remove") {
+        ss >> buf;
+        uint8_t peerbinary[TOX_PUBLIC_KEY_SIZE];
+        hex_string_to_bin(buf.c_str(), peerbinary);
+        bool result = tox_remove_tcp_relay_from_whitelist(tox, peerbinary);
+        if(result) {
+            fprintf(output, "Removed public key from TCP relay whitelist: %s\n", buf.c_str());
+        } else {
+            fprintf(output, "Failed to remove public key from TCP relay whitelist: %s\n", buf.c_str());
+        }
+    } else if(buf == "tcp_acl_status") {
+        // We can't directly query the status through public API, but we can indicate current setting
+        // In a real implementation we might need to track this in the config too
+        fputs("TCP relay access control status: Use configuration to track current state\n", output);
     } else if(buf == "status") {
         uint8_t toxid[TOX_ADDRESS_SIZE];
         tox_self_get_address(tox, toxid);
@@ -133,6 +163,11 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         fputs("whitelist <toxid> - add/accept a friend\n", output);
         fputs("status            - shows your own id&ip\n", output);
         fputs("bootstrap         - attempt to reconnect\n", output);
+        fputs("tcp_acl_enable    - enable TCP relay access control\n", output);
+        fputs("tcp_acl_disable   - disable TCP relay access control\n", output);
+        fputs("tcp_acl_add <pk>  - add public key to TCP relay whitelist\n", output);
+        fputs("tcp_acl_remove <pk> - remove public key from TCP relay whitelist\n", output);
+        fputs("tcp_acl_status    - show TCP relay access control status\n", output);
     } else if(buf == "bootstrap") {
         do_bootstrap(tox, toxvpn);
     } else if(buf == "route") {

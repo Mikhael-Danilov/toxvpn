@@ -33,7 +33,7 @@ public:
     void removePeer(int friend_number);
     void addPeerRoute(struct in_addr peer, int friend_number);
     void processPacket(const uint8_t* data, size_t bytes, int friend_number);
-    void configure(std::string myip, Tox* my_tox);
+    void configure(std::string myip, Tox* my_tox, std::string tunDevice = "");
 
     std::list<Route> routes;
 
