@@ -11,26 +11,38 @@ static void* start_routine(void* x) {
 
 NetworkInterface::NetworkInterface() : my_tox(nullptr) {
     fd = 0;
-    if((fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        cerr << "unable to open /dev/net/tun" << endl;
-    }
+    // Don't open TUN device here - let configure() method handle it based on tunDevice parameter
 }
 
 void NetworkInterface::configure(string ip_in, Tox* tox_in, string tunDevice) {
     int err;
 
+    // Open TUN device in both cases - we'll attach to existing or create new
+    if((fd = open("/dev/net/tun", O_RDWR)) < 0) {
+        cerr << "unable to open /dev/net/tun" << endl;
+        exit(-1);
+    }
+
     if (!tunDevice.empty()) {
         // Use pre-created TUN device
-        string devicePath = "/dev/" + tunDevice;
-        fd = open(devicePath.c_str(), O_RDWR);
-        if (fd < 0) {
-            cerr << "unable to open pre-created TUN device: " << devicePath << endl;
-            cerr << "error: " << strerror(errno) << endl;
-            exit(-1);
-        }
         cout << "Using pre-created TUN device: " << tunDevice << endl;
 
-        // Just open the existing interface, no need to create it
+        // Configure to attach to existing interface
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_flags = IFF_TUN;
+        strncpy(ifr.ifr_name, tunDevice.c_str(), IFNAMSIZ - 1);
+
+        if((err = ioctl(fd, TUNSETIFF, (void*) &ifr)) < 0) {
+            if(errno == EPERM) {
+                cerr << "no permission to set existing tun device: " << tunDevice << endl;
+                exit(-1);
+            }
+            cerr << "error attaching to existing tun device: " << strerror(errno) << err << endl;
+            close(fd);
+            exit(-1);
+        }
+
         // Get interface index by name
         interfaceIndex = if_nametoindex(tunDevice.c_str());
         if (interfaceIndex == 0) {
