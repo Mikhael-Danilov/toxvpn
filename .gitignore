@@ -1,7 +1,35 @@
+```
+# Build artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.out
+
+# CMake build directories
 build/
-toxvpn
-toxvpn-remote
-CMakeCache.txt
+cmake-build-*/
 CMakeFiles/
+CMakeCache.txt
 Makefile
-cmake_install.cmake
+compile_commands.json
+
+# Dependencies
+vendor/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+```

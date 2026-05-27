@@ -385,11 +385,12 @@ int main(int argc, char** argv) {
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
+    string masqueradeInterface;
     tox_options_ptr opts(tox_options_new(nullptr));
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
-    while((opt = getopt(argc, argv, "shi:l:u:p:a:")) != -1) {
+    while((opt = getopt(argc, argv, "shi:l:u:p:a:m:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'h':
@@ -401,6 +402,7 @@ int main(int argc, char** argv) {
                     "required"
                  << endl;
             cout << "-p <port>\tbind on a given port" << endl;
+            cout << "-m <iface>\tmasquerade VPN traffic to this interface (gateway mode)" << endl;
             cout << "-h\t\tprint this help" << endl;
             return 0;
         case 'i': changeIp = optarg; break;
@@ -418,6 +420,7 @@ int main(int argc, char** argv) {
                 (uint16_t) strtol(optarg, nullptr, 10);
             break;
         case 'a': toxvpn.auto_friends.push_back(string(optarg)); break;
+        case 'm': masqueradeInterface = optarg; break;
         }
     }
     toxvpn.auto_friends.shrink_to_fit();
@@ -582,7 +585,7 @@ int main(int argc, char** argv) {
 #ifdef USE_SELECT
     fd_set readset;
 #endif
-    mynic->configure(myip, my_tox);
+    mynic->configure(myip, my_tox, masqueradeInterface);
     Control* control = nullptr;
 
     if(unixSocket.length()) {
@@ -680,5 +683,8 @@ int main(int argc, char** argv) {
     tox_kill(my_tox);
     if(control)
         delete control;
+    // Clean up network interface (this will also clean up iptables rules)
+    if(mynic)
+        delete mynic;
     return 0;
 }
