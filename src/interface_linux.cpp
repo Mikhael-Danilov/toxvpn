@@ -16,7 +16,7 @@ NetworkInterface::NetworkInterface() : my_tox(nullptr) {
     }
 }
 
-void NetworkInterface::configure(string ip_in, Tox* tox_in) {
+void NetworkInterface::configure(string ip_in, Tox* tox_in, string masquerade_iface) {
     int err;
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
@@ -60,6 +60,44 @@ void NetworkInterface::configure(string ip_in, Tox* tox_in) {
     ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
     ioctl(tun_sock, SIOCSIFFLAGS, &ifr);
 
+    // Setup masquerading if interface specified
+    if(!masquerade_iface.empty()) {
+        printf("setting up masquerade from %s to %s\n", ifr.ifr_name, masquerade_iface.c_str());
+        
+        // First, try to clean up any leftover rules from previous unclean shutdowns
+        char cleanup_cmd[512];
+        snprintf(cleanup_cmd, sizeof(cleanup_cmd), "iptables -t nat -D POSTROUTING -s 10.123.123.0/24 -o %s -j MASQUERADE 2>/dev/null", masquerade_iface.c_str());
+        system(cleanup_cmd);
+        
+        // Enable IP forwarding
+        system("echo 1 > /proc/sys/net/ipv4/ip_forward");
+        
+        // Setup iptables MASQUERADE rule
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "iptables -t nat -A POSTROUTING -s 10.123.123.0/24 -o %s -j MASQUERADE", masquerade_iface.c_str());
+        int ret = system(cmd);
+        if(ret != 0) {
+            printf("warning: iptables MASQUERADE rule failed (exit code %d)\n", ret);
+        }
+        
+        // Allow forwarding
+        snprintf(cmd, sizeof(cmd), "iptables -A FORWARD -i %s -o %s -j ACCEPT", ifr.ifr_name, masquerade_iface.c_str());
+        ret = system(cmd);
+        if(ret != 0) {
+            printf("warning: iptables FORWARD rule failed (exit code %d)\n", ret);
+        }
+        
+        snprintf(cmd, sizeof(cmd), "iptables -A FORWARD -i %s -o %s -m state --state RELATED,ESTABLISHED -j ACCEPT", masquerade_iface.c_str(), ifr.ifr_name);
+        ret = system(cmd);
+        if(ret != 0) {
+            printf("warning: iptables FORWARD established rule failed (exit code %d)\n", ret);
+        }
+        
+        // Store interface info in instance for cleanup
+        tun_interface = ifr.ifr_name;
+        masq_interface = masquerade_iface;
+    }
+
     close(tun_sock);
 
     interfaceIndex = if_nametoindex(ifr.ifr_name);
@@ -69,4 +107,29 @@ void NetworkInterface::configure(string ip_in, Tox* tox_in) {
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&reader, &attr, &start_routine, this);
     pthread_attr_destroy(&attr);
+}
+
+NetworkInterface::~NetworkInterface() {
+    // Cleanup masquerade rules if they were set up
+    if(!masq_interface.empty() && !tun_interface.empty()) {
+        printf("cleaning up masquerade rules for %s\n", tun_interface.c_str());
+        
+        char cmd[512];
+        
+        // Remove iptables MASQUERADE rule
+        snprintf(cmd, sizeof(cmd), "iptables -t nat -D POSTROUTING -s 10.123.123.0/24 -o %s -j MASQUERADE", masq_interface.c_str());
+        system(cmd);
+        
+        // Remove FORWARD rules
+        snprintf(cmd, sizeof(cmd), "iptables -D FORWARD -i %s -o %s -j ACCEPT", tun_interface.c_str(), masq_interface.c_str());
+        system(cmd);
+        
+        snprintf(cmd, sizeof(cmd), "iptables -D FORWARD -i %s -o %s -m state --state RELATED,ESTABLISHED -j ACCEPT", masq_interface.c_str(), tun_interface.c_str());
+        system(cmd);
+    }
+    
+    // Close the TUN device
+    if(fd > 0) {
+        close(fd);
+    }
 }

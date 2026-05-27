@@ -13,7 +13,7 @@ NetworkInterface::NetworkInterface() : fd(0), my_tox(0) {
         cerr << "unable to open /dev/tun0" << endl;
     }
 }
-void NetworkInterface::configure(string myip, Tox* my_tox) {
+void NetworkInterface::configure(string myip, Tox* my_tox, string masquerade_iface) {
     int err;
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
@@ -45,6 +45,22 @@ void NetworkInterface::configure(string myip, Tox* my_tox) {
 
     ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
     ioctl(tun_sock, SIOCSIFFLAGS, &ifr);
+
+    // Setup masquerading if interface specified (macOS uses pfctl)
+    if(!masquerade_iface.empty()) {
+        printf("setting up masquerade from %s to %s\n", ifr.ifr_name, masquerade_iface.c_str());
+        
+        // Enable IP forwarding on macOS
+        system("sysctl -w net.inet.ip.forwarding=1");
+        
+        // Setup NAT on macOS using pfctl
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "echo \"nat on %s from 10.123.123.0/24 to any -> (%s)\" | pfctl -ef -", masquerade_iface.c_str(), masquerade_iface.c_str());
+        int ret = system(cmd);
+        if(ret != 0) {
+            printf("warning: pfctl NAT rule failed (exit code %d)\n", ret);
+        }
+    }
 
     close(tun_sock);
 
